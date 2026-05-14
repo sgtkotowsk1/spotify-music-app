@@ -1,3 +1,8 @@
 {
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://yandex-music-app-production.up.railway.app"
+    }
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
