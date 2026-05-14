@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($bytes = New-Object byte[] 64; \\(New-Object System.Security.Cryptography.RNGCryptoServiceProvider\\).GetBytes\\($bytes\\); [Convert]::ToBase64String\\($bytes\\))"
+    ]
+  }
+}
