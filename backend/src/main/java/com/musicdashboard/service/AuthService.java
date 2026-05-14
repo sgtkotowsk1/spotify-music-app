@@ -152,11 +152,19 @@ public class AuthService {
                 .header(HttpHeaders.AUTHORIZATION, basicAuthHeader())
                 .body(BodyInserters.fromFormData(formData))
                 .retrieve()
+                .onStatus(status -> !status.is2xxSuccessful(), response ->
+                    response.bodyToMono(String.class).defaultIfEmpty("").map(body -> {
+                        log.error("Spotify token exchange error {}: {}", response.statusCode().value(), body);
+                        return (Throwable) new SpotifyApiException("Token exchange " + response.statusCode().value() + ": " + body);
+                    })
+                )
                 .bodyToMono(Map.class)
                 .block();
+        } catch (SpotifyApiException ex) {
+            throw ex;
         } catch (Exception ex) {
-            log.error("Failed to exchange code: {}", ex.getMessage());
-            throw new SpotifyApiException("Failed to exchange authorization code");
+            log.error("Failed to exchange code: {} {}", ex.getClass().getSimpleName(), ex.getMessage());
+            throw new SpotifyApiException("Failed to exchange code: " + ex.getMessage());
         }
     }
 
@@ -166,12 +174,21 @@ public class AuthService {
             return webClient.get()
                 .uri("https://api.spotify.com/v1/me")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .header(HttpHeaders.ACCEPT, "application/json")
                 .retrieve()
+                .onStatus(status -> !status.is2xxSuccessful(), response ->
+                    response.bodyToMono(String.class).defaultIfEmpty("").map(body -> {
+                        log.error("Spotify /v1/me error {}: {}", response.statusCode().value(), body);
+                        return (Throwable) new SpotifyApiException("/v1/me " + response.statusCode().value() + ": " + body);
+                    })
+                )
                 .bodyToMono(Map.class)
                 .block();
+        } catch (SpotifyApiException ex) {
+            throw ex;
         } catch (Exception ex) {
-            log.error("Failed to fetch user info: {}", ex.getMessage());
-            throw new SpotifyApiException("Failed to fetch user info from Spotify");
+            log.error("Failed to fetch user info: {} {}", ex.getClass().getSimpleName(), ex.getMessage());
+            throw new SpotifyApiException("Failed to fetch user info: " + ex.getMessage());
         }
     }
 
