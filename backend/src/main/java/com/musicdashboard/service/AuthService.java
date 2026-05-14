@@ -1,7 +1,7 @@
 package com.musicdashboard.service;
 
 import com.musicdashboard.dto.auth.AuthResponse;
-import com.musicdashboard.exception.YandexApiException;
+import com.musicdashboard.exception.SpotifyApiException;
 import com.musicdashboard.model.OAuthToken;
 import com.musicdashboard.model.User;
 import com.musicdashboard.repository.OAuthTokenRepository;
@@ -9,6 +9,7 @@ import com.musicdashboard.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -17,7 +18,10 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -30,31 +34,32 @@ public class AuthService {
     private final OAuthTokenRepository oAuthTokenRepository;
     private final JwtService jwtService;
 
-    @Value("${yandex.client-id}")
+    @Value("${spotify.client-id}")
     private String clientId;
 
-    @Value("${yandex.client-secret}")
+    @Value("${spotify.client-secret}")
     private String clientSecret;
 
-    @Value("${yandex.redirect-uri}")
+    @Value("${spotify.redirect-uri}")
     private String redirectUri;
 
-    @Value("${yandex.auth-url}")
+    @Value("${spotify.auth-url}")
     private String authUrl;
 
-    @Value("${yandex.token-url}")
+    @Value("${spotify.token-url}")
     private String tokenUrl;
 
-    @Value("${yandex.user-info-url}")
-    private String userInfoUrl;
+    @Value("${spotify.scopes}")
+    private String scopes;
 
     public String buildAuthorizationUrl(String state) {
         return UriComponentsBuilder.fromHttpUrl(authUrl)
-            .queryParam("response_type", "code")
             .queryParam("client_id", clientId)
+            .queryParam("response_type", "code")
             .queryParam("redirect_uri", redirectUri)
+            .queryParam("scope", scopes)
             .queryParam("state", state)
-            .queryParam("force_confirm", "yes")
+            .queryParam("show_dialog", "false")
             .build()
             .toUriString();
     }
@@ -66,28 +71,28 @@ public class AuthService {
         String accessToken = (String) tokenResponse.get("access_token");
         String refreshToken = (String) tokenResponse.get("refresh_token");
         Integer expiresIn = (Integer) tokenResponse.get("expires_in");
-        String tokenType = (String) tokenResponse.get("token_type");
 
         if (accessToken == null) {
-            throw new YandexApiException("Failed to obtain access token from Yandex");
+            throw new SpotifyApiException("Failed to obtain access token from Spotify");
         }
 
         Map<String, Object> userInfo = fetchUserInfo(accessToken);
 
-        String yandexId = String.valueOf(userInfo.get("id"));
-        String login = (String) userInfo.get("login");
-        String email = (String) userInfo.get("default_email");
+        String spotifyId = (String) userInfo.get("id");
+        String email = (String) userInfo.get("email");
         String displayName = (String) userInfo.get("display_name");
-        String avatarId = (String) userInfo.get("default_avatar_id");
-        String avatarUrl = avatarId != null
-            ? "https://avatars.yandex.net/get-yapic/" + avatarId + "/islands-200"
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> images = (List<Map<String, Object>>) userInfo.get("images");
+        String avatarUrl = (images != null && !images.isEmpty())
+            ? (String) images.get(0).get("url")
             : null;
 
-        User user = userRepository.findByYandexId(yandexId)
-            .map(existing -> updateUser(existing, login, email, displayName, avatarUrl))
-            .orElseGet(() -> createUser(yandexId, login, email, displayName, avatarUrl));
+        User user = userRepository.findBySpotifyId(spotifyId)
+            .map(existing -> updateUser(existing, email, displayName, avatarUrl))
+            .orElseGet(() -> createUser(spotifyId, email, displayName, avatarUrl));
 
-        saveOrUpdateToken(user, accessToken, refreshToken, tokenType, expiresIn);
+        saveOrUpdateToken(user, accessToken, refreshToken, expiresIn);
 
         String jwtAccess = jwtService.generateAccessToken(user.getId(), user.getEmail());
         String jwtRefresh = jwtService.generateRefreshToken(user.getId(), user.getEmail());
@@ -110,11 +115,11 @@ public class AuthService {
     @Transactional
     public AuthResponse refreshTokens(String refreshToken) {
         if (!jwtService.isTokenValid(refreshToken)) {
-            throw new YandexApiException("Invalid or expired refresh token", 401);
+            throw new SpotifyApiException("Invalid or expired refresh token", 401);
         }
         Long userId = jwtService.extractUserId(refreshToken);
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new YandexApiException("User not found", 401));
+            .orElseThrow(() -> new SpotifyApiException("User not found", 401));
 
         String jwtAccess = jwtService.generateAccessToken(user.getId(), user.getEmail());
         String jwtRefresh = jwtService.generateRefreshToken(user.getId(), user.getEmail());
@@ -139,20 +144,19 @@ public class AuthService {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "authorization_code");
         formData.add("code", code);
-        formData.add("client_id", clientId);
-        formData.add("client_secret", clientSecret);
         formData.add("redirect_uri", redirectUri);
 
         try {
             return webClient.post()
                 .uri(tokenUrl)
+                .header(HttpHeaders.AUTHORIZATION, basicAuthHeader())
                 .body(BodyInserters.fromFormData(formData))
                 .retrieve()
                 .bodyToMono(Map.class)
                 .block();
         } catch (Exception ex) {
             log.error("Failed to exchange code: {}", ex.getMessage());
-            throw new YandexApiException("Failed to exchange authorization code");
+            throw new SpotifyApiException("Failed to exchange authorization code");
         }
     }
 
@@ -160,21 +164,26 @@ public class AuthService {
     private Map<String, Object> fetchUserInfo(String accessToken) {
         try {
             return webClient.get()
-                .uri(userInfoUrl + "?format=json")
-                .header("Authorization", "OAuth " + accessToken)
+                .uri("https://api.spotify.com/v1/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .retrieve()
                 .bodyToMono(Map.class)
                 .block();
         } catch (Exception ex) {
             log.error("Failed to fetch user info: {}", ex.getMessage());
-            throw new YandexApiException("Failed to fetch user info from Yandex");
+            throw new SpotifyApiException("Failed to fetch user info from Spotify");
         }
     }
 
-    private User createUser(String yandexId, String login, String email, String displayName, String avatarUrl) {
+    private String basicAuthHeader() {
+        String credentials = clientId + ":" + clientSecret;
+        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private User createUser(String spotifyId, String email, String displayName, String avatarUrl) {
         User user = User.builder()
-            .yandexId(yandexId)
-            .login(login)
+            .spotifyId(spotifyId)
+            .login(spotifyId)
             .email(email)
             .displayName(displayName)
             .avatarUrl(avatarUrl)
@@ -182,21 +191,19 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    private User updateUser(User user, String login, String email, String displayName, String avatarUrl) {
-        user.setLogin(login);
+    private User updateUser(User user, String email, String displayName, String avatarUrl) {
         user.setEmail(email);
         user.setDisplayName(displayName);
         user.setAvatarUrl(avatarUrl);
         return userRepository.save(user);
     }
 
-    private void saveOrUpdateToken(User user, String accessToken, String refreshToken, String tokenType, Integer expiresIn) {
+    private void saveOrUpdateToken(User user, String accessToken, String refreshToken, Integer expiresIn) {
         Instant expiresAt = expiresIn != null ? Instant.now().plusSeconds(expiresIn) : null;
         oAuthTokenRepository.findByUserId(user.getId())
             .map(token -> {
                 token.setAccessToken(accessToken);
-                token.setRefreshToken(refreshToken);
-                token.setTokenType(tokenType);
+                if (refreshToken != null) token.setRefreshToken(refreshToken);
                 token.setExpiresAt(expiresAt);
                 return oAuthTokenRepository.save(token);
             })
@@ -205,7 +212,7 @@ public class AuthService {
                     .user(user)
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
-                    .tokenType(tokenType)
+                    .tokenType("Bearer")
                     .expiresAt(expiresAt)
                     .build()
             ));

@@ -8,11 +8,8 @@ import java.util.List;
 @Data
 @Builder
 public class DashboardStatsDto {
-    private int totalLikedTracks;
-    private int totalLikedAlbums;
-    private int totalLikedArtists;
-    private int totalPlaylists;
-    private List<TrackDto> recentTracks;
+    private List<TrackDto> topTracks;
     private List<ArtistDto> topArtists;
-    private List<AlbumDto> recentAlbums;
+    private List<RecentlyPlayedDto> recentlyPlayed;
+    private int totalPlaylists;
 }

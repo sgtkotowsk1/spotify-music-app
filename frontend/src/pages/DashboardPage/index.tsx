@@ -1,150 +1,107 @@
-import { motion } from 'framer-motion'
-import { Heart, Users, Disc3, ListMusic } from 'lucide-react'
-import { Layout } from '@/shared/components/Layout'
-import { AlbumCard, ArtistCard, TrackCard } from '@/shared/components/MusicCard'
-import { PageLoader } from '@/shared/components/LoadingSpinner'
-import { ErrorState } from '@/shared/components/ErrorBoundary'
+import { Link } from 'react-router-dom'
 import { useDashboard } from '@/features/music/hooks'
-import { useCurrentUser } from '@/features/auth/hooks'
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  color,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  value: number
-  color: string
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="card flex items-center gap-4"
-    >
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${color}`}>
-        <Icon className="h-6 w-6 text-white" />
-      </div>
-      <div>
-        <p className="text-2xl font-bold">{value.toLocaleString()}</p>
-        <p className="text-sm text-white/50">{label}</p>
-      </div>
-    </motion.div>
-  )
-}
+import { Layout } from '@/shared/components/Layout'
+import { LoadingSpinner } from '@/shared/components/LoadingSpinner'
+import { formatDuration, formatPlayedAt } from '@/shared/utils/format'
+import type { SpotifyArtist, SpotifyTrack } from '@/shared/types'
 
 export default function DashboardPage() {
-  const user = useCurrentUser()
-  const { data, isLoading, isError, refetch } = useDashboard()
+  const { data, isLoading, error } = useDashboard()
 
-  if (isLoading)
-    return (
-      <Layout title="Dashboard">
-        <PageLoader />
-      </Layout>
-    )
-  if (isError)
-    return (
-      <Layout title="Dashboard">
-        <ErrorState onRetry={refetch} />
-      </Layout>
-    )
-
-  const greeting =
-    new Date().getHours() < 12
-      ? 'Good morning'
-      : new Date().getHours() < 18
-        ? 'Good afternoon'
-        : 'Good evening'
+  if (isLoading) return <Layout title="Dashboard"><div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div></Layout>
+  if (error || !data) return <Layout title="Dashboard"><p className="text-red-400 py-10 text-center">Failed to load dashboard.</p></Layout>
 
   return (
     <Layout title="Dashboard">
-      <div className="space-y-8">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <h2 className="text-xl font-semibold text-white/70">
-            {greeting}, <span className="text-white">{user?.displayName ?? user?.login}</span>
-          </h2>
-          <p className="text-sm text-white/40 mt-1">Here's what's in your music library</p>
-        </motion.div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            icon={Heart}
-            label="Liked Tracks"
-            value={data!.totalLikedTracks}
-            color="bg-pink-600"
-          />
-          <StatCard
-            icon={Disc3}
-            label="Liked Albums"
-            value={data!.totalLikedAlbums}
-            color="bg-brand-600"
-          />
-          <StatCard
-            icon={Users}
-            label="Liked Artists"
-            value={data!.totalLikedArtists}
-            color="bg-emerald-600"
-          />
-          <StatCard
-            icon={ListMusic}
-            label="Playlists"
-            value={data!.totalPlaylists}
-            color="bg-amber-600"
-          />
+      <div className="space-y-10">
+        <div>
+          <h1 className="text-3xl font-bold">Good to see you 👋</h1>
+          <p className="text-white/50 mt-1">Here's your Spotify listening summary</p>
         </div>
 
-        {data!.recentTracks.length > 0 && (
-          <section>
-            <h3 className="text-lg font-semibold mb-4">Recent Liked Tracks</h3>
-            <div className="rounded-xl bg-surface-50 overflow-hidden">
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
-              >
-                {data!.recentTracks.map(track => (
-                  <TrackCard key={track.id} track={track} queue={data!.recentTracks} />
-                ))}
-              </motion.div>
-            </div>
-          </section>
-        )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard label="Top Tracks" value={String(data.topTracks.length)} sub="this month" href="/top-tracks" color="#1DB954" />
+          <StatCard label="Top Artists" value={String(data.topArtists.length)} sub="this month" href="/top-artists" color="#1DB954" />
+          <StatCard label="Playlists" value={String(data.totalPlaylists)} sub="in your library" href="/playlists" color="#1DB954" />
+        </div>
 
-        {data!.topArtists.length > 0 && (
-          <section>
-            <h3 className="text-lg font-semibold mb-4">Liked Artists</h3>
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
-            >
-              {data!.topArtists.map(artist => (
-                <ArtistCard key={artist.id} artist={artist} />
-              ))}
-            </motion.div>
-          </section>
-        )}
+        <Section title="Top Tracks This Month" href="/top-tracks">
+          <div className="space-y-1">
+            {data.topTracks.map((track, i) => (
+              <TrackRow key={track.id} track={track} rank={i + 1} right={formatDuration(track.durationMs)} />
+            ))}
+          </div>
+        </Section>
 
-        {data!.recentAlbums.length > 0 && (
-          <section>
-            <h3 className="text-lg font-semibold mb-4">Recent Albums</h3>
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
-            >
-              {data!.recentAlbums.map(album => (
-                <AlbumCard key={album.id} album={album} />
-              ))}
-            </motion.div>
-          </section>
-        )}
+        <Section title="Top Artists This Month" href="/top-artists">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            {data.topArtists.map((artist) => <ArtistChip key={artist.id} artist={artist} />)}
+          </div>
+        </Section>
+
+        <Section title="Recently Played" href="/recently-played">
+          <div className="space-y-1">
+            {data.recentlyPlayed.slice(0, 5).map((item, i) => (
+              <TrackRow key={`${item.track.id}-${i}`} track={item.track} right={formatPlayedAt(item.playedAt)} />
+            ))}
+          </div>
+        </Section>
       </div>
     </Layout>
+  )
+}
+
+function StatCard({ label, value, sub, href, color }: { label: string; value: string; sub: string; href: string; color: string }) {
+  return (
+    <Link to={href} className="rounded-xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition group">
+      <p className="text-white/50 text-sm">{label}</p>
+      <p className="text-3xl font-bold mt-1" style={{ color }}>{value}</p>
+      <p className="text-white/30 text-xs mt-1">{sub}</p>
+    </Link>
+  )
+}
+
+function Section({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <Link to={href} className="text-sm text-[#1DB954] hover:underline">See all →</Link>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function TrackRow({ track, rank, right }: { track: SpotifyTrack; rank?: number; right?: string }) {
+  return (
+    <a href={track.spotifyUrl ?? '#'} target="_blank" rel="noopener noreferrer"
+      className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5 transition group">
+      {rank !== undefined && <span className="w-5 text-right text-white/30 text-sm tabular-nums">{rank}</span>}
+      <div className="h-10 w-10 rounded overflow-hidden bg-white/10 flex-shrink-0">
+        {track.album?.imageUrl
+          ? <img src={track.album.imageUrl} alt={track.name} className="h-full w-full object-cover" />
+          : <div className="h-full w-full flex items-center justify-center">🎵</div>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate group-hover:text-[#1DB954] transition text-sm">{track.name}</p>
+        <p className="text-white/50 text-xs truncate">{track.artists.map(a => a.name).join(', ')}</p>
+      </div>
+      {right && <span className="text-white/30 text-xs tabular-nums flex-shrink-0">{right}</span>}
+    </a>
+  )
+}
+
+function ArtistChip({ artist }: { artist: SpotifyArtist }) {
+  return (
+    <a href={artist.spotifyUrl ?? '#'} target="_blank" rel="noopener noreferrer"
+      className="group flex flex-col items-center gap-2 text-center">
+      <div className="h-20 w-20 rounded-full overflow-hidden bg-white/10">
+        {artist.imageUrl
+          ? <img src={artist.imageUrl} alt={artist.name} className="h-full w-full object-cover group-hover:scale-105 transition" />
+          : <div className="h-full w-full flex items-center justify-center text-2xl">🎤</div>}
+      </div>
+      <span className="text-xs font-medium truncate w-full">{artist.name}</span>
+    </a>
   )
 }

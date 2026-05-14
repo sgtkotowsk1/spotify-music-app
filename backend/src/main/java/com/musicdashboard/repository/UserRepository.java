@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findByYandexId(String yandexId);
+    Optional<User> findBySpotifyId(String spotifyId);
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.oAuthToken WHERE u.id = :id")
     Optional<User> findByIdWithToken(Long id);

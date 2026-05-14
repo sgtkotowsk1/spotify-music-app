@@ -8,12 +8,11 @@ import java.util.List;
 @Data
 @Builder
 public class TrackDto {
-    private Long id;
-    private String title;
-    private List<ArtistDto> artists;
+    private String id;
+    private String name;
+    private int durationMs;
+    private int popularity;
+    private String spotifyUrl;
     private AlbumDto album;
-    private Integer durationMs;
-    private String coverUri;
-    private Boolean available;
-    private Boolean explicit;
+    private List<ArtistDto> artists;
 }

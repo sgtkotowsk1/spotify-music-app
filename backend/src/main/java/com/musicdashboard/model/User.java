@@ -9,7 +9,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "users", indexes = {
-    @Index(name = "idx_users_yandex_id", columnList = "yandexId", unique = true)
+    @Index(name = "idx_users_spotify_id", columnList = "spotifyId", unique = true)
 })
 @Getter
 @Setter
@@ -23,7 +23,7 @@ public class User {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String yandexId;
+    private String spotifyId;
 
     @Column
     private String email;

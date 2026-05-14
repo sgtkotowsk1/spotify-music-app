@@ -1,63 +1,42 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Search } from 'lucide-react'
+import { useRecentlyPlayed } from '@/features/music/hooks'
 import { Layout } from '@/shared/components/Layout'
-import { TrackCard } from '@/shared/components/MusicCard'
-import { PageLoader } from '@/shared/components/LoadingSpinner'
-import { ErrorState } from '@/shared/components/ErrorBoundary'
-import { useLikedTracks } from '@/features/music/hooks'
+import { LoadingSpinner } from '@/shared/components/LoadingSpinner'
+import { formatDuration, formatPlayedAt } from '@/shared/utils/format'
 
-export default function FavoritesPage() {
-  const [query, setQuery] = useState('')
-  const { data: tracks, isLoading, isError, refetch } = useLikedTracks()
-
-  if (isLoading) return <Layout title="Liked Tracks"><PageLoader /></Layout>
-  if (isError) return <Layout title="Liked Tracks"><ErrorState onRetry={refetch} /></Layout>
-
-  const filtered = (tracks ?? []).filter(t =>
-    !query ||
-    t.title.toLowerCase().includes(query.toLowerCase()) ||
-    t.artists.some(a => a.name.toLowerCase().includes(query.toLowerCase()))
-  )
+export default function RecentlyPlayedPage() {
+  const { data, isLoading } = useRecentlyPlayed()
 
   return (
-    <Layout title="Liked Tracks">
+    <Layout title="Recently Played">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <p className="text-white/50 text-sm">{tracks?.length ?? 0} tracks</p>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-            <input
-              type="text"
-              placeholder="Search tracks..."
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm rounded-full bg-white/10 border border-white/10 focus:outline-none focus:border-brand-500 focus:bg-white/15 placeholder-white/30 transition-all w-64"
-            />
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold">Recently Played</h1>
+          <p className="text-white/50 mt-1">Your last 50 tracks</p>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="text-center py-16 text-white/40">
-            {query ? 'No tracks match your search' : 'No liked tracks yet'}
-          </div>
-        ) : (
-          <div className="rounded-xl bg-surface-50 overflow-hidden">
-            <div className="flex items-center gap-4 px-4 py-2 border-b border-white/5 text-xs text-white/30 uppercase tracking-wider">
-              <div className="w-12" />
-              <div className="flex-1">Title</div>
-              <div className="hidden md:block w-40">Album</div>
-              <div className="w-12 text-right">Time</div>
-            </div>
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={{ visible: { transition: { staggerChildren: 0.03 } } }}
-            >
-              {filtered.map(track => (
-                <TrackCard key={track.id} track={track} queue={tracks ?? []} />
-              ))}
-            </motion.div>
+        {isLoading && <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}
+
+        {data && (
+          <div className="space-y-1">
+            {data.map((item, i) => (
+              <a key={`${item.track.id}-${i}`} href={item.track.spotifyUrl ?? '#'} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5 transition group">
+                <div className="h-12 w-12 rounded overflow-hidden bg-white/10 flex-shrink-0">
+                  {item.track.album?.imageUrl
+                    ? <img src={item.track.album.imageUrl} alt={item.track.name} className="h-full w-full object-cover" />
+                    : <div className="h-full w-full flex items-center justify-center">🎵</div>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate group-hover:text-[#1DB954] transition">{item.track.name}</p>
+                  <p className="text-white/50 text-sm truncate">{item.track.artists.map(a => a.name).join(', ')}</p>
+                  <p className="text-white/30 text-xs mt-0.5">{item.track.album?.name}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-white/30 text-sm tabular-nums">{formatDuration(item.track.durationMs)}</p>
+                  <p className="text-white/20 text-xs mt-0.5">{formatPlayedAt(item.playedAt)}</p>
+                </div>
+              </a>
+            ))}
           </div>
         )}
       </div>

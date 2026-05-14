@@ -1,10 +1,15 @@
 import { apiClient } from '@/shared/api/client'
-import type { Album, Artist, DashboardStats, Playlist, Track } from '@/shared/types'
+import type { DashboardStats, RecentlyPlayed, SpotifyArtist, SpotifyPlaylist, SpotifyTrack, TimeRange } from '@/shared/types'
 
 export const musicApi = {
-  getDashboard: () => apiClient.get<DashboardStats>('/music/dashboard'),
-  getLikedTracks: () => apiClient.get<Track[]>('/music/tracks/liked'),
-  getLikedAlbums: () => apiClient.get<Album[]>('/music/albums/liked'),
-  getLikedArtists: () => apiClient.get<Artist[]>('/music/artists/liked'),
-  getPlaylists: () => apiClient.get<Playlist[]>('/music/playlists'),
+  getDashboard: () =>
+    apiClient.get<DashboardStats>('/spotify/dashboard'),
+  getTopTracks: (timeRange: TimeRange = 'short_term') =>
+    apiClient.get<SpotifyTrack[]>(`/spotify/top-tracks?timeRange=${timeRange}`),
+  getTopArtists: (timeRange: TimeRange = 'short_term') =>
+    apiClient.get<SpotifyArtist[]>(`/spotify/top-artists?timeRange=${timeRange}`),
+  getRecentlyPlayed: () =>
+    apiClient.get<RecentlyPlayed[]>('/spotify/recently-played'),
+  getPlaylists: () =>
+    apiClient.get<SpotifyPlaylist[]>('/spotify/playlists'),
 }

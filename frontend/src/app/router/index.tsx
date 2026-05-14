@@ -6,9 +6,9 @@ import { PageLoader } from '@/shared/components/LoadingSpinner'
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
-const FavoritesPage = lazy(() => import('@/pages/FavoritesPage'))
-const ArtistsPage = lazy(() => import('@/pages/ArtistsPage'))
-const AlbumsPage = lazy(() => import('@/pages/AlbumsPage'))
+const TopTracksPage = lazy(() => import('@/pages/AlbumsPage'))
+const TopArtistsPage = lazy(() => import('@/pages/ArtistsPage'))
+const RecentlyPlayedPage = lazy(() => import('@/pages/FavoritesPage'))
 const PlaylistsPage = lazy(() => import('@/pages/PlaylistsPage'))
 
 const wrap = (element: React.ReactNode) => (
@@ -28,9 +28,9 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       { path: '/', element: wrap(<DashboardPage />) },
-      { path: '/favorites', element: wrap(<FavoritesPage />) },
-      { path: '/artists', element: wrap(<ArtistsPage />) },
-      { path: '/albums', element: wrap(<AlbumsPage />) },
+      { path: '/top-tracks', element: wrap(<TopTracksPage />) },
+      { path: '/top-artists', element: wrap(<TopArtistsPage />) },
+      { path: '/recently-played', element: wrap(<RecentlyPlayedPage />) },
       { path: '/playlists', element: wrap(<PlaylistsPage />) },
     ],
   },

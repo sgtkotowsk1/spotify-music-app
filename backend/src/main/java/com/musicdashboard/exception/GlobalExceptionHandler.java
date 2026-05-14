@@ -25,12 +25,12 @@ public class GlobalExceptionHandler {
         return detail;
     }
 
-    @ExceptionHandler(YandexApiException.class)
-    public ProblemDetail handleYandexApi(YandexApiException ex) {
-        log.error("Yandex API error: {}", ex.getMessage());
+    @ExceptionHandler(SpotifyApiException.class)
+    public ProblemDetail handleSpotifyApi(SpotifyApiException ex) {
+        log.error("Spotify API error: {}", ex.getMessage());
         HttpStatus status = ex.getStatusCode() == 401 ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_GATEWAY;
-        ProblemDetail detail = ProblemDetail.forStatusAndDetail(status, "Yandex Music API error: " + ex.getMessage());
-        detail.setType(URI.create("/errors/yandex-api"));
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(status, "Spotify API error: " + ex.getMessage());
+        detail.setType(URI.create("/errors/spotify-api"));
         return detail;
     }
 

@@ -20,7 +20,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Yandex OAuth2 authentication endpoints")
+@Tag(name = "Authentication", description = "Spotify OAuth2 authentication endpoints")
 public class AuthController {
 
     private final AuthService authService;
@@ -28,16 +28,16 @@ public class AuthController {
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    @GetMapping("/yandex/authorize")
-    @Operation(summary = "Get Yandex OAuth authorization URL")
+    @GetMapping("/spotify/authorize")
+    @Operation(summary = "Get Spotify OAuth authorization URL")
     public ResponseEntity<Map<String, String>> getAuthorizationUrl() {
         String state = UUID.randomUUID().toString();
         String url = authService.buildAuthorizationUrl(state);
         return ResponseEntity.ok(Map.of("url", url, "state", state));
     }
 
-    @GetMapping("/yandex/callback")
-    @Operation(summary = "Handle Yandex OAuth callback")
+    @GetMapping("/spotify/callback")
+    @Operation(summary = "Handle Spotify OAuth callback")
     public ResponseEntity<Void> handleCallback(
         @RequestParam String code,
         @RequestParam(required = false) String state
@@ -57,7 +57,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Logout (client-side token invalidation)")
+    @Operation(summary = "Logout")
     public ResponseEntity<Map<String, String>> logout() {
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }

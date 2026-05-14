@@ -3,7 +3,7 @@ import type { AuthTokens } from '@/shared/types'
 
 export const authApi = {
   getAuthUrl: () =>
-    apiClient.get<{ url: string; state: string }>('/auth/yandex/authorize'),
+    apiClient.get<{ url: string; state: string }>('/auth/spotify/authorize'),
 
   refresh: (refreshToken: string) =>
     apiClient.post<AuthTokens>('/auth/refresh', { refreshToken }),

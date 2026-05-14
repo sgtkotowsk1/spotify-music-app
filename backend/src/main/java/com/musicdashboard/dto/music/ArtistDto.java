@@ -8,10 +8,11 @@ import java.util.List;
 @Data
 @Builder
 public class ArtistDto {
-    private Long id;
+    private String id;
     private String name;
-    private String coverUri;
+    private String imageUrl;
+    private int popularity;
+    private int followersTotal;
     private List<String> genres;
-    private Integer trackCount;
-    private Integer albumCount;
+    private String spotifyUrl;
 }

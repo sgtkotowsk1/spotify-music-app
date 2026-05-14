@@ -1,37 +1,38 @@
 import { useQuery } from '@tanstack/react-query'
+import type { TimeRange } from '@/shared/types'
 import { musicApi } from './api'
 
-const STALE_TIME = 5 * 60 * 1000
+const STALE = 5 * 60 * 1000
 
 export function useDashboard() {
   return useQuery({
     queryKey: ['dashboard'],
     queryFn: () => musicApi.getDashboard().then(r => r.data),
-    staleTime: STALE_TIME,
+    staleTime: STALE,
   })
 }
 
-export function useLikedTracks() {
+export function useTopTracks(timeRange: TimeRange) {
   return useQuery({
-    queryKey: ['tracks', 'liked'],
-    queryFn: () => musicApi.getLikedTracks().then(r => r.data),
-    staleTime: STALE_TIME,
+    queryKey: ['top-tracks', timeRange],
+    queryFn: () => musicApi.getTopTracks(timeRange).then(r => r.data),
+    staleTime: STALE,
   })
 }
 
-export function useLikedAlbums() {
+export function useTopArtists(timeRange: TimeRange) {
   return useQuery({
-    queryKey: ['albums', 'liked'],
-    queryFn: () => musicApi.getLikedAlbums().then(r => r.data),
-    staleTime: STALE_TIME,
+    queryKey: ['top-artists', timeRange],
+    queryFn: () => musicApi.getTopArtists(timeRange).then(r => r.data),
+    staleTime: STALE,
   })
 }
 
-export function useLikedArtists() {
+export function useRecentlyPlayed() {
   return useQuery({
-    queryKey: ['artists', 'liked'],
-    queryFn: () => musicApi.getLikedArtists().then(r => r.data),
-    staleTime: STALE_TIME,
+    queryKey: ['recently-played'],
+    queryFn: () => musicApi.getRecentlyPlayed().then(r => r.data),
+    staleTime: STALE,
   })
 }
 
@@ -39,6 +40,6 @@ export function usePlaylists() {
   return useQuery({
     queryKey: ['playlists'],
     queryFn: () => musicApi.getPlaylists().then(r => r.data),
-    staleTime: STALE_TIME,
+    staleTime: STALE,
   })
 }
