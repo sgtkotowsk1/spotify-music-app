@@ -38,7 +38,7 @@ public class UserService {
     private UserProfileDto toProfileDto(User user) {
         return UserProfileDto.builder()
             .id(user.getId())
-            .yandexId(user.getYandexId())
+            .spotifyId(user.getSpotifyId())
             .email(user.getEmail())
             .displayName(user.getDisplayName())
             .login(user.getLogin())

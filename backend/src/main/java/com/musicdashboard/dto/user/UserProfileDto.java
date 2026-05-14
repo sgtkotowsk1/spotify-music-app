@@ -9,7 +9,7 @@ import java.time.Instant;
 @Builder
 public class UserProfileDto {
     private Long id;
-    private String yandexId;
+    private String spotifyId;
     private String email;
     private String displayName;
     private String login;
