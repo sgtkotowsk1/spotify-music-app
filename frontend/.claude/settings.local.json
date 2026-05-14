@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "PowerShell($bytes = New-Object byte[] 64; \\(New-Object System.Security.Cryptography.RNGCryptoServiceProvider\\).GetBytes\\($bytes\\); [Convert]::ToBase64String\\($bytes\\))",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(gh repo *)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\User\\\\yandex-music-app\\\\backend\\\\src\\\\main\\\\java\\\\com\\\\musicdashboard\\\\service\\\\YandexMusicService.java\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\User\\\\yandex-music-app\\\\backend\\\\src\\\\main\\\\java\\\\com\\\\musicdashboard\\\\exception\\\\YandexApiException.java\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\User\\\\yandex-music-app\\\\backend\\\\src\\\\main\\\\java\\\\com\\\\musicdashboard\\\\dto\\\\music\\\\TrackStreamUrlDto.java\" -Force)",
+      "Bash(Write-Output \"Deleted old Yandex files\")"
     ]
   }
 }
