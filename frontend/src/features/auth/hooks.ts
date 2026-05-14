@@ -5,6 +5,10 @@ import { authApi } from './api'
 export function useLogin() {
   return useCallback(async () => {
     const { data } = await authApi.getAuthUrl()
+    if (!data?.url) {
+      console.error('No auth URL returned — check VITE_API_URL env var')
+      return
+    }
     window.location.href = data.url
   }, [])
 }
